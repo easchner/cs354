@@ -29,6 +29,13 @@ int old_y;
 float x_norm, y_norm;
 bool rotating;
 bool zooming = false;
+float zoomFactor = 1.0f;
+Vec3f startArc;
+Vec3f currentArc;
+Vec3f arcNormal;
+float arcTheta;
+GLfloat arcMatrix[16];
+GLfloat savedArcMatrix[16];
 int radius = 1;
 // (2,2,5) are the values that were originally in the gluLookAt()
 Vec3f eye = {2, 2, 5};
@@ -46,14 +53,17 @@ void Display() {
   // mesh.bb() may be useful.
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  gluLookAt(eye[0], eye[1], eye[2],
+  Vec3f zoomedEye =
+    {eye[0] * zoomFactor, eye[1] * zoomFactor, eye[2] * zoomFactor};
+  gluLookAt(zoomedEye[0], zoomedEye[1], zoomedEye[2],
             0, 0, 0,
             0, 1, 0);
 
   // TODO set up lighting, material properties and render mesh.
   // Be sure to call glEnable(GL_RESCALE_NORMAL) so your normals
   // remain normalized throughout transformations.
-
+  // glRotatef(arcTheta, arcNormal[0], arcNormal[1], arcNormal[2]);
+  MultMatrix(arcMatrix);
   // You can leave the axis in if you like.
   glDisable(GL_LIGHTING);
   glLineWidth(4);
@@ -123,6 +133,10 @@ void Init() {
   glLoadIdentity();
 
   gluPerspective(40.0, window_aspect, 1, 1500);
+
+  glLoadIdentity();
+  glGetFloatv(GL_MODELVIEW_MATRIX, arcMatrix);
+  glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
 }
 
 void DrawAxis() {
@@ -143,72 +157,86 @@ void DrawAxis() {
   glEnd();
 }
 
+Vec3f computeArcBall(int x, int y) {
+  Vec3f arc;
+  arc[0] = (x * 2.0) / (window_width * 1.0) - 1.0;
+  arc[1] = -1.0 * ((y * 2.0) / (window_height * 1.0) - 1.0);
+  // Remember a sphere is defined by R = sqrt(x^2 + y^2 + z^2)
+  if ((arc[0] * arc[0] + arc[1] * arc[1]) < 1) {
+    arc[2] = 1 - (arc[0] * arc[0] + arc[1] * arc[1]);
+  } else {
+    if (arc[0] == 0) {
+      arc[0] = .00001;
+    }
+    if (arc[1] == 0) {
+      arc[1] = .00001;
+    }
+    float theta = atan(abs(arc[1]) / abs(arc[0]));
+    arc[0] = cos(theta) * arc[0] / abs(arc[0]);
+    arc[1] = sin(theta) * arc[1] / abs(arc[1]);
+    arc[2] = 0;
+  }
+    cout << "Arc: " << arc[0] << ", " << arc[1] << ", " << arc[2] << endl;
+  return arc;
+}
+
 // Gets called every click of the mouse
 void MouseButton(int button, int state, int x, int y) {
-  // TODO implement arc ball and zoom
-  // Right-click: button = 0
-  // Left-click: button = 2
-  // MouseDown: state = 0
-  // MouseUp: state = 1
-  cout << "Window width: " << window_height << endl;
-  cout << "X: " << x << endl;
-  cout << "Y: " << y << endl;
-
-  x_norm = ((2.0 * x / (window_width - 1)) - 1);
-  y_norm = -((2.0 * y / (window_height - 1)) - 1);
-  cout << "X_norm: " << x_norm << endl;
-  cout << "Y_norm: " << y_norm << endl;
-  // cout << "Button: " << button << endl;
-
-// ROTATION HANDLING
-  if (button == 0) {
-    rotating = (state == 0) ? true : false;
+  // ROTATION HANDLING
+  if (button == 0 && state == 0) {
+    rotating = true;
+    startArc = computeArcBall(x, y);
+  } else if (button == 0 && state == 1) {
+    rotating = false;
+    // Save our current arc ball matrix
+    cout << "Mouse release" << endl;
+    PrintMatrix(arcMatrix);
+    cout << endl;
+    glLoadMatrixf(arcMatrix);
+    glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
+    PrintMatrix(savedArcMatrix);
   }
-// ZOOM HANDLING
+  cout << "No button" << endl;
+    PrintMatrix(savedArcMatrix);
+  // ZOOM HANDLING
   if (button == 2) {
-    // cout << "ZOOM" << endl;
     zooming = (state == 0) ? true : false;
   }
   glutPostRedisplay();
 }
 
 void MouseMotion(int x, int y) {
-  // TODO implement arc ball and zoom
-  cout << "MouseMotion | Y: " << y << " | old_Y: " << old_y << endl;
-
   // HANDLES ROTATION
-  // Here we will have to develop a rotation matrix
-  // given old value of x and y normalized, these are saved as globals
   if (rotating) {
-    // normalize the new values
-    float end_x_norm =  ((2.0 * x / (window_width - 1)) - 1);
-    float end_y_norm = -((2.0 * y / (window_height - 1)) - 1);
-    // get the length of the vector
-    // NOT SURE THIS IS NECESSARY
-    // float length = (end_x_norm * end_x_norm) + (end_y_norm * end_y_norm);
-    // cout << "Length : " << length << endl;
-    // float norm = radius / sqrt(length);
-    // normanlize vector, point on sphere
-    // float sphere_norm_x = end_x_norm * norm;
-    // float sphere_norm_y = end_y_norm * norm;
-    // cout << "sphere_norm_x: " << sphere_norm_x << endl;
-    // cout << "sphere_norm_y: " << sphere_norm_y << endl;
-  }
+    currentArc = computeArcBall(x, y);
+    // We need the normal between Origin, start pt, and current pt
+    // We don't need to subtract the origin to make two vectors as the origin
+    // is just (0, 0, 0) so the 'vectors' are the same values as the 'points'
+    arcNormal = currentArc ^ startArc;
+    Vec3f a = arcNormal;
 
-  // HANDLES ZOOM
-  Vec3f difference = center - eye;
-  if (zooming && old_y < y) {
-    eye[0] = eye[0] + difference[0]*0.02;
-    eye[1] = eye[1] + difference[1]*0.02;
-    eye[2] = eye[2] + difference[2]*0.02;
+    // We also need the central angle between the origin and two vectors
+    arcTheta = acos(startArc.unit() * currentArc.unit()) / M_PI * 180.0;
+
+    // Update our matrix
+    glLoadMatrixf(savedArcMatrix);
+    glRotatef(arcTheta, arcNormal[0], arcNormal[1], arcNormal[2]);
+    glGetFloatv(GL_MODELVIEW_MATRIX, arcMatrix);
+    cout << "Mouse motion" << endl;
+    PrintMatrix(arcMatrix);
+
+    glutPostRedisplay();
+  } else {
+    // HANDLES ZOOM
+    if (zooming && old_y < y) {
+      zoomFactor *= 0.98;
+    }
+    if (zooming && old_y > y) {
+      zoomFactor *= 1.02;
+    }
+    old_y = y;
+    glutPostRedisplay();
   }
-  if (zooming && old_y > y) {
-    eye[0] = eye[0] - difference[0]*0.02;
-    eye[1] = eye[1] - difference[1]*0.02;
-    eye[2] = eye[2] - difference[2]*0.02;
-  }
-  old_y = y;
-  glutPostRedisplay();
 }
 
 void Keyboard(unsigned char key, int x, int y) {
