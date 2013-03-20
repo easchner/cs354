@@ -23,6 +23,7 @@ void PrintMatrix(GLint matrix);
 void PrintMatrix();
 void LoadMatrix(GLfloat* m);
 void MultMatrix(GLfloat* m);
+void InvertMatrix(GLfloat* m);
 
 void Display1();
 void Display2();

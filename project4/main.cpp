@@ -62,7 +62,6 @@ void Display() {
   // TODO set up lighting, material properties and render mesh.
   // Be sure to call glEnable(GL_RESCALE_NORMAL) so your normals
   // remain normalized throughout transformations.
-  // glRotatef(arcTheta, arcNormal[0], arcNormal[1], arcNormal[2]);
   MultMatrix(arcMatrix);
   // You can leave the axis in if you like.
   glDisable(GL_LIGHTING);
@@ -98,24 +97,23 @@ void PrintMatrix() {
 }
 
 void LoadMatrix(GLfloat* m) {
-  // transpose to column-major
-  for (int i = 0; i < 4; ++i) {
-    for (int j = i; j < 4; ++j) {
-      swap(m[i*4+j], m[j*4+i]);
-    }
-  }
+  InvertMatrix(m);
   glLoadMatrixf(m);
 }
 
 void MultMatrix(GLfloat* m) {
+  glMultMatrixf(m);
+}
+
+void InvertMatrix(GLfloat* m) {
   // transpose to column-major
   for (int i = 0; i < 4; ++i) {
     for (int j = i; j < 4; ++j) {
       swap(m[i*4+j], m[j*4+i]);
     }
   }
-  glMultMatrixf(m);
 }
+
 
 void Init() {
   glEnable(GL_DEPTH_TEST);
@@ -176,7 +174,6 @@ Vec3f computeArcBall(int x, int y) {
     arc[1] = sin(theta) * arc[1] / abs(arc[1]);
     arc[2] = 0;
   }
-    cout << "Arc: " << arc[0] << ", " << arc[1] << ", " << arc[2] << endl;
   return arc;
 }
 
@@ -189,15 +186,10 @@ void MouseButton(int button, int state, int x, int y) {
   } else if (button == 0 && state == 1) {
     rotating = false;
     // Save our current arc ball matrix
-    cout << "Mouse release" << endl;
-    PrintMatrix(arcMatrix);
-    cout << endl;
     glLoadMatrixf(arcMatrix);
     glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
-    PrintMatrix(savedArcMatrix);
   }
-  cout << "No button" << endl;
-    PrintMatrix(savedArcMatrix);
+
   // ZOOM HANDLING
   if (button == 2) {
     zooming = (state == 0) ? true : false;
@@ -216,14 +208,12 @@ void MouseMotion(int x, int y) {
     Vec3f a = arcNormal;
 
     // We also need the central angle between the origin and two vectors
-    arcTheta = acos(startArc.unit() * currentArc.unit()) / M_PI * 180.0;
+    arcTheta = acos(startArc.unit() * currentArc.unit()) / M_PI * -180.0;
 
     // Update our matrix
     glLoadMatrixf(savedArcMatrix);
     glRotatef(arcTheta, arcNormal[0], arcNormal[1], arcNormal[2]);
     glGetFloatv(GL_MODELVIEW_MATRIX, arcMatrix);
-    cout << "Mouse motion" << endl;
-    PrintMatrix(arcMatrix);
 
     glutPostRedisplay();
   } else {
