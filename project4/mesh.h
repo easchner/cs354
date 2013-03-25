@@ -8,6 +8,11 @@
 #include "./bb.h"
 #include "./material.h"
 
+struct poly {
+  vector <int> v;
+  vector <int> vt;
+};
+
 // This class represents a mesh, which contains vertices, polygons,
 // and material properties for each polygon.
 class Mesh {
@@ -75,6 +80,10 @@ class Mesh {
 
  private:
   // TODO add necessary data structures here
+  std::vector <Vec3f> vert_list;
+  std::vector <Vec3f> vert_norm_list;
+  std::vector <Vec3f> tex_vert_list;
+  std::vector <poly> poly_list;
 
   std::vector<Material> _materials;
   std::vector<int> _polygon2material;
