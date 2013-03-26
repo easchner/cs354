@@ -49,6 +49,12 @@ void Display() {
   glLoadIdentity();
   gluPerspective(40.0, window_aspect, 1, 1500);
 
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_POLYGON_SMOOTH);
+
   // TODO call gluLookAt such that mesh fits nicely in viewport.
   // mesh.bb() may be useful.
   glMatrixMode(GL_MODELVIEW);
@@ -59,10 +65,17 @@ void Display() {
             0, 0, 0,
             0, 1, 0);
 
+  // Rotate our view to our current arcball state
+  MultMatrix(arcMatrix);
+
   // TODO set up lighting, material properties and render mesh.
   // Be sure to call glEnable(GL_RESCALE_NORMAL) so your normals
   // remain normalized throughout transformations.
-  MultMatrix(arcMatrix);
+
+  // Draw our mesh
+  glEnable(GL_LIGHTING);
+  mesh.draw_mesh();
+
   // You can leave the axis in if you like.
   glDisable(GL_LIGHTING);
   glLineWidth(4);

@@ -7,6 +7,7 @@
 #include "./vec.h"
 #include "./bb.h"
 #include "./material.h"
+#include "./common.h"
 
 struct poly {
   vector <int> v;
@@ -77,6 +78,8 @@ class Mesh {
   int num_materials() const { return _materials.size(); }
 
   void compute_normals();
+
+  void draw_mesh();
 
  private:
   // TODO add necessary data structures here
