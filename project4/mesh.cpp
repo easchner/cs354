@@ -65,22 +65,33 @@ void Mesh::AddPolygon(const std::vector<int>& p, const std::vector<int>& pt) {
 
 // Computes a normal for each vertex.
 void Mesh::compute_normals() {
-  // TODO don't forget to normalize your normals!
-  // This is wrong, the normal of a plane should be the cross product of
-  // two vectors in the plane Can get two vectors by subtracting points
-  // Vertex normals are the same of each adjacent plane normal
-  for (int i = 0; i < vert_list.size(); i++) {
-    float mag = sqrt(pow(vert_list[i][0], 2) +
-                     pow(vert_list[i][1], 2) +
-                     pow(vert_list[i][0], 2));
+  // What we are going to do is save a list of each vertex then iterate
+  // through each face and compute its normal and add it to that face's
+  // vertices.  Then normalize each vertex's normal
 
-    Vec3f normal;
-    normal[0] = vert_list[i][0]/mag;
-    normal[1] = vert_list[i][1]/mag;
-    normal[2] = vert_list[i][2]/mag;
-    vert_norm_list.push_back(normal);
+  // Create our list of vertices
+  vert_norm_list.resize(vert_list.size());
+
+  Vec3f edge1, edge2, normal;
+
+  // Iterate through each face
+  for (int i = 0; i < poly_list.size(); i++) {
+    // Compute the normal by taking cross product of V1 - V0 and V2 - V1
+    edge1 = vert_list[poly_list[i].v[1]] - vert_list[poly_list[i].v[0]];
+    edge2 = vert_list[poly_list[i].v[2]] - vert_list[poly_list[i].v[1]];
+    normal = edge1 ^ edge2;
+    normal = normal.unit();
+
+    // Add it to each vertex on the polygon
+    for (int j = 0; j < poly_list[i].v.size(); j++) {
+      vert_norm_list[poly_list[i].v[j]] += normal;
+    }
   }
-  // cout << "Computed Normals" << endl;
+
+  // Now normalize each vertex's normal
+  for (int i = 0; i < vert_norm_list.size(); i++) {
+    vert_norm_list[i] = vert_norm_list[i].unit();
+  }
 }
 
 // Draw our mesh to the world view
@@ -91,10 +102,26 @@ void Mesh::draw_mesh() {
     glBegin(GL_POLYGON);
     glColor3f(1.0, 0.0, 0.0);
     for (int j = 0; j < poly_list[i].v.size(); j++) {
+      glNormal3f(vert_norm_list[poly_list[i].v[j]][0],
+                 vert_norm_list[poly_list[i].v[j]][1],
+                 vert_norm_list[poly_list[i].v[j]][2]);
       glVertex3f(vert_list[poly_list[i].v[j]][0],
                  vert_list[poly_list[i].v[j]][1],
                  vert_list[poly_list[i].v[j]][2]);
     }
     glEnd();
   }
+
+  // This is to show normals
+  /* glDisable(GL_LIGHTING);
+  glLineWidth(2);
+  glBegin(GL_LINES);
+  glColor3f(1.0, 0.0, 0.0);
+  for (int i = 0; i < vert_list.size(); i++) {
+    glVertex3f(vert_list[i][0], vert_list[i][1], vert_list[i][2]);
+    glVertex3f(vert_list[i][0] + vert_norm_list[i][0],
+               vert_list[i][1] + vert_norm_list[i][1],
+               vert_list[i][2] + vert_norm_list[i][2]);
+  }
+  glEnable(GL_LIGHTING); */
 }

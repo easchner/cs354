@@ -74,6 +74,7 @@ void Display() {
 
   // Draw our mesh
   glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
   mesh.draw_mesh();
 
   // You can leave the axis in if you like.
