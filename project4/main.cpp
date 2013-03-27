@@ -40,6 +40,7 @@ int radius = 1;
 // (2,2,5) are the values that were originally in the gluLookAt()
 Vec3f eye = {2, 2, 5};
 BoundingBox bbox = {{-1, -1, -1}, {1, 1, 1}};
+bool start = true;
 Vec3f center = (bbox.max+bbox.min)/2.0f;
 
 void Display() {
@@ -59,8 +60,17 @@ void Display() {
   // mesh.bb() may be useful.
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
+
+  if (start) {
+    float inis_zoom = max(mesh.bb().xdim()/4,
+                      max(mesh.bb().ydim()/4, mesh.bb().zdim()/4));
+    eye = eye * inis_zoom;
+    start = false;
+  }
   Vec3f zoomedEye =
-    {eye[0] * zoomFactor, eye[1] * zoomFactor, eye[2] * zoomFactor};
+    {eye[0] * zoomFactor,
+    eye[1] * zoomFactor,
+    eye[2] * zoomFactor};
   gluLookAt(zoomedEye[0], zoomedEye[1], zoomedEye[2],
             0, 0, 0,
             0, 1, 0);
@@ -77,6 +87,7 @@ void Display() {
   glEnable(GL_LIGHT0);
 
   mesh.draw_mesh(texture_ids);
+  // glTranslatef(testcenter[0] , testcenter[1], testcenter[2]);
 
   // You can leave the axis in if you like.
   glDisable(GL_LIGHTING);
@@ -235,9 +246,11 @@ void MouseMotion(int x, int y) {
     // HANDLES ZOOM
     if (zooming && old_y < y) {
       zoomFactor *= 0.98;
+      // cout << "zoom: " << zoomFactor << endl;
     }
     if (zooming && old_y > y) {
       zoomFactor *= 1.02;
+      // cout << "zoom: " << zoomFactor << endl;
     }
     old_y = y;
     glutPostRedisplay();

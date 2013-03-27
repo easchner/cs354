@@ -39,6 +39,8 @@ void Mesh::AddPolygon(const std::vector<int>& p, const std::vector<int>& pt) {
   vector <int> vt;
 
   // cout << "AddPolygon: (";
+  if (p.size() > 3)
+    cout << "polygon more than 3 vertex" << endl;
 
   for (int i = 0; i < p.size(); i++) {
     v.push_back(p[i]);
@@ -95,6 +97,7 @@ void Mesh::compute_normals() {
 
 // Draw our mesh to the world view
 void Mesh::draw_mesh(GLuint* texture_ids) {
+  glTranslatef(0 , -bb().dim(1)/2, 0);
   // cout << "Drawing mesh" << endl;
   int currentMaterial = -1;
   glCullFace(GL_BACK);
@@ -134,6 +137,7 @@ void Mesh::draw_mesh(GLuint* texture_ids) {
     }
     glEnd();
   }
+  glTranslatef(0.0, bb().dim(1)/2, 0.0);
 
   // This is to show normals
   /* glDisable(GL_LIGHTING);
