@@ -49,8 +49,8 @@ void Display() {
   glLoadIdentity();
   gluPerspective(40.0, window_aspect, 1, 1500);
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // glEnable(GL_BLEND);
+  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glEnable(GL_LINE_SMOOTH);
   glEnable(GL_POLYGON_SMOOTH);
@@ -75,7 +75,8 @@ void Display() {
   // Draw our mesh
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
-  mesh.draw_mesh();
+
+  mesh.draw_mesh(texture_ids);
 
   // You can leave the axis in if you like.
   glDisable(GL_LIGHTING);

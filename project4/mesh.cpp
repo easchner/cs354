@@ -24,8 +24,7 @@ void Mesh::AddVertex(const Vec3f& v) {
 void Mesh::AddTextureVertex(const Vec3f& v) {
   // TODO
   tex_vert_list.push_back(v);
-  // cout << "AddTextureVertex: (" << v[0] << "," << v[1] << "," << v[2]
-  //   << ")" << endl;
+  // cout << "AddTextureVertex: (" << v[0] << "," << v[1] << ")" << endl;
 }
 
 // p is the list of indices of vertices for this polygon.  For example,
@@ -95,16 +94,40 @@ void Mesh::compute_normals() {
 }
 
 // Draw our mesh to the world view
-void Mesh::draw_mesh() {
+void Mesh::draw_mesh(GLuint* texture_ids) {
   // cout << "Drawing mesh" << endl;
+  int currentMaterial = -1;
+  glCullFace(GL_BACK);
+  glEnable(GL_CULL_FACE);
+  glColor4f(1, 1, 1, 1);
 
   for (int i = 0; i < poly_list.size(); i++) {
+    if (_polygon2material[i] != currentMaterial) {
+      Material cur_mat = _materials[_polygon2material[i]];
+      Vec3f vec = cur_mat.ambient();
+      GLfloat ambient[] = {vec[0], vec[1], vec[2], vec[3]};
+      glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+      vec = cur_mat.diffuse();
+      GLfloat diffuse[] = {vec[0], vec[1], vec[2], vec[3]};
+      // glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+      vec = cur_mat.specular();
+      GLfloat specular[] = {vec[0], vec[1], vec[2], vec[3]};
+      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+      glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, cur_mat.specular_coeff());
+      glEnable(GL_TEXTURE_2D);
+      glBindTexture(GL_TEXTURE_2D, texture_ids[cur_mat.texture_id() - 1]);
+      currentMaterial = _polygon2material[i];
+    }
+
     glBegin(GL_POLYGON);
-    glColor3f(1.0, 0.0, 0.0);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+
     for (int j = 0; j < poly_list[i].v.size(); j++) {
       glNormal3f(vert_norm_list[poly_list[i].v[j]][0],
                  vert_norm_list[poly_list[i].v[j]][1],
                  vert_norm_list[poly_list[i].v[j]][2]);
+      glTexCoord2f(tex_vert_list[poly_list[i].vt[j]][0],
+                   tex_vert_list[poly_list[i].vt[j]][1]);
       glVertex3f(vert_list[poly_list[i].v[j]][0],
                  vert_list[poly_list[i].v[j]][1],
                  vert_list[poly_list[i].v[j]][2]);
