@@ -69,13 +69,15 @@ void Display() {
     eye = eye * inis_zoom;
     start = false;
   }
-  Vec3f zoomedEye =
-    {eye[0] * zoomFactor,
-    eye[1] * zoomFactor,
-    eye[2] * zoomFactor};
+  Vec3f zoomedEye = {eye[0] * zoomFactor,
+                     eye[1] * zoomFactor,
+                     eye[2] * zoomFactor};
   gluLookAt(zoomedEye[0], zoomedEye[1], zoomedEye[2],
             0, 0, 0,
             0, 1, 0);
+
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
 
   // Rotate our view to our current arcball state
   MultMatrix(arcMatrix);
@@ -85,8 +87,6 @@ void Display() {
   // remain normalized throughout transformations.
 
   // Draw our mesh
-  glEnable(GL_LIGHTING);
-  glEnable(GL_LIGHT0);
 
   mesh.draw_mesh(texture_ids, translation, rotation);
 
@@ -190,6 +190,7 @@ Vec3f computeArcBall(int x, int y) {
   if ((arc[0] * arc[0] + arc[1] * arc[1]) < 1) {
     arc[2] = 1 - (arc[0] * arc[0] + arc[1] * arc[1]);
   } else {
+    // Avoid divide by zero errors
     if (arc[0] == 0) {
       arc[0] = .00001;
     }
@@ -213,8 +214,11 @@ void MouseButton(int button, int state, int x, int y) {
   } else if (button == 0 && state == 1) {
     rotating = false;
     // Save our current arc ball matrix
-    glLoadMatrixf(arcMatrix);
-    glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
+    // glLoadMatrixf(arcMatrix);
+    // glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
+    for (int i = 0; i < 16; i++) {
+      savedArcMatrix[i] = arcMatrix[i];
+    }
   }
 
   // ZOOM HANDLING
@@ -238,8 +242,9 @@ void MouseMotion(int x, int y) {
     arcTheta = acos(startArc.unit() * currentArc.unit()) / M_PI * -180.0;
 
     // Update our matrix
-    glLoadMatrixf(savedArcMatrix);
+    glLoadIdentity();
     glRotatef(arcTheta, arcNormal[0], arcNormal[1], arcNormal[2]);
+    MultMatrix(savedArcMatrix);
     glGetFloatv(GL_MODELVIEW_MATRIX, arcMatrix);
 
     glutPostRedisplay();

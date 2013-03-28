@@ -74,22 +74,15 @@ void Mesh::compute_normals() {
 
   // iterate through the combination of vertices to get every face
   for (int i = 0; i < poly_list.size(); i++) {
-    for (int e = 0; e < poly_list[i].v.size(); e++) {
-      // wrap around vertices f and g using modulus %
-      int f = (e + 1) % (poly_list[i].v.size());
-      int g = (f + 1) % (poly_list[i].v.size());
-      edge1 = vert_list[poly_list[i].v[f]] - vert_list[poly_list[i].v[e]];
-      edge2 = vert_list[poly_list[i].v[g]] - vert_list[poly_list[i].v[f]];
-      normal = edge1 ^ edge2;
-      normal = normal.unit();
+    // Compute the normal by taking cross product of V1 - V0 and V2 - V1
+    edge1 = vert_list[poly_list[i].v[1]] - vert_list[poly_list[i].v[0]];
+    edge2 = vert_list[poly_list[i].v[2]] - vert_list[poly_list[i].v[1]];
+    normal = edge1 ^ edge2;
+    normal = normal.unit();
 
-      // test printouts
-      // cout << "#ofFaces:" << i << "   #ofVertices:"
-      // << poly_list[i].v.size() << "   E:"
-      // << e << "   F:" << f << "   G:" << g << endl;
-
-      // add it to each vertex on the polygon
-        vert_norm_list[poly_list[i].v[e]] += normal;
+    // Add it to each vertex on the polygon
+    for (int j = 0; j < poly_list[i].v.size(); j++) {
+      vert_norm_list[poly_list[i].v[j]] += normal;
     }
   }
 
@@ -133,7 +126,7 @@ void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
     }
 
     glBegin(GL_POLYGON);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     for (int j = 0; j < poly_list[i].v.size(); j++) {
       glNormal3f(vert_norm_list[poly_list[i].v[j]][0],
@@ -147,12 +140,6 @@ void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
     }
     glEnd();
   }
-  glRotatef(-rotation[0], 1, 0 , 0);
-  glRotatef(-rotation[1], 0, 1 , 0);
-  glRotatef(-rotation[2], 0, 0 , 1);
-  glTranslatef(-translation[0] ,
-               bb().dim(1)/2 - translation[1], translation[2]);
-
 
   // This is to show normals
   /* glDisable(GL_LIGHTING);
@@ -166,4 +153,10 @@ void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
                vert_list[i][2] + vert_norm_list[i][2]);
   }
   glEnable(GL_LIGHTING); */
+
+  glRotatef(-rotation[0], 1, 0 , 0);
+  glRotatef(-rotation[1], 0, 1 , 0);
+  glRotatef(-rotation[2], 0, 0 , 1);
+  glTranslatef(-translation[0] ,
+               bb().dim(1)/2 - translation[1], translation[2]);
 }
