@@ -42,6 +42,8 @@ Vec3f eye = {2, 2, 5};
 BoundingBox bbox = {{-1, -1, -1}, {1, 1, 1}};
 bool start = true;
 Vec3f center = (bbox.max+bbox.min)/2.0f;
+Vec3f translation = {0.0, 0.0, 0.0};
+Vec3f rotation = {0.0, 0.0, 0.0};
 
 void Display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -86,8 +88,7 @@ void Display() {
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
 
-  mesh.draw_mesh(texture_ids);
-  // glTranslatef(testcenter[0] , testcenter[1], testcenter[2]);
+  mesh.draw_mesh(texture_ids, translation, rotation);
 
   // You can leave the axis in if you like.
   glDisable(GL_LIGHTING);
@@ -263,7 +264,48 @@ void Keyboard(unsigned char key, int x, int y) {
     case 27:  // esc
       exit(0);
       break;
+    case 'j':
+      cout << "translate left" << endl;
+      translation[0]++;
+      break;
+    case 'k':
+      cout << "translate right" << endl;
+      translation[0]--;
+      break;
+    case 'i':
+      cout << "translate up" << endl;
+      translation[1]++;
+      break;
+    case 'm':
+      cout << "translate down" << endl;
+      translation[1]--;
+      break;
+    case '5':
+      cout << "rotate around " << endl;
+      rotation[0] += 5;
+      break;
+    case '6':
+      cout << "rotate around " << endl;
+      rotation[0] += 5;
+      break;
+    case '7':
+      cout << "rotate around " << endl;
+      rotation[1] += 5;
+      break;
+    case '8':
+      cout << "rotate around " << endl;
+      rotation[1] += 5;
+      break;
+    case '9':
+      cout << "rotate around " << endl;
+      rotation[2] += 5;
+      break;
+    case '0':
+      cout << "rotate around " << endl;
+      rotation[2] += 5;
+      break;
   }
+  glutPostRedisplay();
 }
 
 int main(int argc, char *argv[]) {

@@ -38,9 +38,7 @@ void Mesh::AddPolygon(const std::vector<int>& p, const std::vector<int>& pt) {
   vector <int> v;
   vector <int> vt;
 
-  // cout << "AddPolygon: (";
-  if (p.size() > 3)
-    cout << "polygon more than 3 vertex" << endl;
+  // cout << "AddPolygon - #verticies: " << p.size() << endl;
 
   for (int i = 0; i < p.size(); i++) {
     v.push_back(p[i]);
@@ -68,24 +66,30 @@ void Mesh::AddPolygon(const std::vector<int>& p, const std::vector<int>& pt) {
 void Mesh::compute_normals() {
   // What we are going to do is save a list of each vertex then iterate
   // through each face and compute its normal and add it to that face's
-  // vertices.  Then normalize each vertex's normal
+  // vertices.  Then normalize each vertex's normal.
 
   // Create our list of vertices
   vert_norm_list.resize(vert_list.size());
-
   Vec3f edge1, edge2, normal;
 
-  // Iterate through each face
+  // iterate through the combination of vertices to get every face
   for (int i = 0; i < poly_list.size(); i++) {
-    // Compute the normal by taking cross product of V1 - V0 and V2 - V1
-    edge1 = vert_list[poly_list[i].v[1]] - vert_list[poly_list[i].v[0]];
-    edge2 = vert_list[poly_list[i].v[2]] - vert_list[poly_list[i].v[1]];
-    normal = edge1 ^ edge2;
-    normal = normal.unit();
+    for (int e = 0; e < poly_list[i].v.size(); e++) {
+      // wrap around vertices f and g using modulus %
+      int f = (e + 1) % (poly_list[i].v.size());
+      int g = (f + 1) % (poly_list[i].v.size());
+      edge1 = vert_list[poly_list[i].v[f]] - vert_list[poly_list[i].v[e]];
+      edge2 = vert_list[poly_list[i].v[g]] - vert_list[poly_list[i].v[f]];
+      normal = edge1 ^ edge2;
+      normal = normal.unit();
 
-    // Add it to each vertex on the polygon
-    for (int j = 0; j < poly_list[i].v.size(); j++) {
-      vert_norm_list[poly_list[i].v[j]] += normal;
+      // test printouts
+      // cout << "#ofFaces:" << i << "   #ofVertices:"
+      // << poly_list[i].v.size() << "   E:"
+      // << e << "   F:" << f << "   G:" << g << endl;
+
+      // add it to each vertex on the polygon
+        vert_norm_list[poly_list[i].v[e]] += normal;
     }
   }
 
@@ -96,8 +100,14 @@ void Mesh::compute_normals() {
 }
 
 // Draw our mesh to the world view
-void Mesh::draw_mesh(GLuint* texture_ids) {
-  glTranslatef(0 , -bb().dim(1)/2, 0);
+void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
+  // glDepthFunc(GL_LEQUAL);
+  glRotatef(rotation[0], 1, 0 , 0);
+  glRotatef(rotation[1], 0, 1 , 0);
+  glRotatef(rotation[2], 0, 0 , 1);
+  glTranslatef(translation[0] ,
+               -bb().dim(1)/2 + translation[1], translation[2]);
+
   // cout << "Drawing mesh" << endl;
   int currentMaterial = -1;
   glCullFace(GL_BACK);
@@ -112,7 +122,7 @@ void Mesh::draw_mesh(GLuint* texture_ids) {
       glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
       vec = cur_mat.diffuse();
       GLfloat diffuse[] = {vec[0], vec[1], vec[2], vec[3]};
-      // glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
       vec = cur_mat.specular();
       GLfloat specular[] = {vec[0], vec[1], vec[2], vec[3]};
       glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
@@ -137,7 +147,12 @@ void Mesh::draw_mesh(GLuint* texture_ids) {
     }
     glEnd();
   }
-  glTranslatef(0.0, bb().dim(1)/2, 0.0);
+  glRotatef(-rotation[0], 1, 0 , 0);
+  glRotatef(-rotation[1], 0, 1 , 0);
+  glRotatef(-rotation[2], 0, 0 , 1);
+  glTranslatef(-translation[0] ,
+               bb().dim(1)/2 - translation[1], translation[2]);
+
 
   // This is to show normals
   /* glDisable(GL_LIGHTING);

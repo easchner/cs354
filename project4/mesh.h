@@ -79,7 +79,7 @@ class Mesh {
 
   void compute_normals();
 
-  void draw_mesh(GLuint* texture_ids);
+  void draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation);
 
  private:
   // TODO add necessary data structures here
