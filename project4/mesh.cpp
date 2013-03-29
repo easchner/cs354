@@ -105,8 +105,10 @@ void Mesh::draw_mesh(GLuint* texture_ids, bool normals) {
       glNormal3f(vert_norm_list[poly_list[i].v[j]][0],
                  vert_norm_list[poly_list[i].v[j]][1],
                  vert_norm_list[poly_list[i].v[j]][2]);
-      // glTexCoord2f(tex_vert_list[poly_list[i].vt[j]][0],
-      //              tex_vert_list[poly_list[i].vt[j]][1]);
+                 if (tex_vert_list.size() > 0) {
+                   glTexCoord2f(tex_vert_list[poly_list[i].vt[j]][0],
+                     tex_vert_list[poly_list[i].vt[j]][1]);
+                 }
       glVertex3f(vert_list[poly_list[i].v[j]][0],
                  vert_list[poly_list[i].v[j]][1],
                  vert_list[poly_list[i].v[j]][2]);

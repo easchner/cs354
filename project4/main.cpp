@@ -35,7 +35,6 @@ bool axis = false;
 float zoomFactor = 1.0f;
 Vec3f eye = {0, 0, 6};
 BoundingBox bbox = {{-1, -1, -1}, {1, 1, 1}};
-Vec3f center = (bbox.max+bbox.min)/2.0f;
 
 // For arcBall implementation
 Vec3f startArc;
@@ -98,22 +97,6 @@ void Display() {
   mesh.draw_mesh(texture_ids, normals);
 
   glPopMatrix();
-
-  if (disco) {
-    glPushMatrix();
-    GLfloat color[4] = {1.0, 1.0, 1.0, 1.0};
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
-    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 200.0f);
-    glutSolidSphere(1, 30, 30);
-    glColor4f(0.0, 0.0, 0.0, 0.0);
-    glLineWidth(2);
-    glutWireSphere(1.01, 30, 30);
-//    glTranslatef(10.0, 0.0, 1.0, 0.0);
-    glPopMatrix();
-  }
-
   MultMatrix(arcMatrix);
 
   if (axis) {
@@ -404,7 +387,13 @@ void Keyboard(unsigned char key, int x, int y) {
       break;
     case 'd':
       disco = !disco;
-      break;
+      if (!disco) {
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        lightColor[0] = 0.75;
+        lightColor[1] = 0.75;
+        lightColor[2] = 0.75;
+      }
+    break;
   }
   glutPostRedisplay();
 }
