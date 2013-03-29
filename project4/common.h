@@ -25,6 +25,7 @@ void LoadMatrix(GLfloat* m);
 void MultMatrix(GLfloat* m);
 void InvertMatrix(GLfloat* m);
 void discoLight();
+void DisplayScene();
 
 void Display1();
 void Display2();

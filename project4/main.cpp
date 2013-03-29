@@ -32,6 +32,7 @@ bool zooming = false;
 bool normals = false;
 bool disco = false;
 bool axis = false;
+bool scene = false;
 float zoomFactor = 1.0f;
 Vec3f eye = {0, 0, 6};
 BoundingBox bbox = {{-1, -1, -1}, {1, 1, 1}};
@@ -56,6 +57,71 @@ GLfloat lightColor[4];
 GLfloat lightAtten;
 
 void Display() {
+  if (scene) {
+    DisplayScene();
+  } else {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(40.0, window_aspect, 1, 1500);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    Vec3f zoomedEye = {eye[0] * zoomFactor,
+                       eye[1] * zoomFactor,
+                       eye[2] * zoomFactor};
+    gluLookAt(zoomedEye[0], zoomedEye[1], zoomedEye[2],
+              0, 0, 0,
+              0, 1, 0);
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_RESCALE_NORMAL);
+
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightColor);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+    glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.0);
+    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, lightAtten);
+
+    // Rotate our view to our current arcball state
+    glPushMatrix();
+    MultMatrix(objectTranslate);
+    MultMatrix(objectRotate);
+    MultMatrix(arcMatrix);
+    MultMatrix(yOffset);
+
+    if (scene_lighting) {
+      glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+    }
+
+    // Draw our mesh
+    mesh.draw_mesh(texture_ids, normals);
+
+    glPopMatrix();
+    MultMatrix(arcMatrix);
+
+    if (axis) {
+      glDisable(GL_LIGHTING);
+      glLineWidth(4);
+      DrawAxis();
+      glEnable(GL_LIGHTING);
+    }
+
+    glFlush();
+    glutSwapBuffers();
+
+    if (disco) {
+      usleep(90000);
+      discoLight();
+      glutPostRedisplay();
+    }
+  }
+}
+
+void DisplayScene() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glMatrixMode(GL_PROJECTION);
@@ -82,38 +148,37 @@ void Display() {
   glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.0);
   glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, lightAtten);
 
-  // Rotate our view to our current arcball state
-  glPushMatrix();
-  MultMatrix(objectTranslate);
-  MultMatrix(objectRotate);
-  MultMatrix(arcMatrix);
-  MultMatrix(yOffset);
+  for (int i = 0; i < 7; i++) {
+    // Draw a bunch of logos
+    glPushMatrix();
+    objectTranslate[12] = (rand() % 80 - 50) * 1.4;
+    objectTranslate[13] = (rand() % 80 - 50) * 1.4;
+    objectTranslate[14] = rand() % 100 - 150;
+    MultMatrix(objectTranslate);
+    glRotatef(rand() % 360, (rand() % 100) / 100.0, (rand() % 100) / 100.0,
+              (rand() % 100) / 100.0);
+    MultMatrix(arcMatrix);
+    MultMatrix(yOffset);
+    if (scene_lighting) {
+      glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+    }
 
-  if (scene_lighting) {
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+    // Draw our logo
+    mesh.draw_mesh(texture_ids, normals);
+
+    glPopMatrix();
   }
 
-  // Draw our mesh
-  mesh.draw_mesh(texture_ids, normals);
-
-  glPopMatrix();
   MultMatrix(arcMatrix);
-
-  if (axis) {
-    glDisable(GL_LIGHTING);
-    glLineWidth(4);
-    DrawAxis();
-    glEnable(GL_LIGHTING);
-  }
-
-  glFlush();
-  glutSwapBuffers();
 
   if (disco) {
     usleep(90000);
     discoLight();
     glutPostRedisplay();
   }
+
+  glFlush();
+  glutSwapBuffers();
 }
 
 void PrintMatrix(GLfloat* m) {
@@ -326,10 +391,10 @@ void Keyboard(unsigned char key, int x, int y) {
       exit(0);
       break;
     case 'y':
-      objectTranslate[12] += translateStep;
+      objectTranslate[12] -= translateStep;
       break;
     case 'u':
-      objectTranslate[12] -= translateStep;
+      objectTranslate[12] += translateStep;
       break;
     case 'h':
       objectTranslate[13] += translateStep;
@@ -338,10 +403,10 @@ void Keyboard(unsigned char key, int x, int y) {
       objectTranslate[13] -= translateStep;
       break;
     case 'n':
-      objectTranslate[14] += translateStep;
+      objectTranslate[14] -= translateStep;
       break;
     case 'm':
-      objectTranslate[14] -= translateStep;
+      objectTranslate[14] += translateStep;
       break;
     case 'r':
       glLoadIdentity();
@@ -423,7 +488,18 @@ int main(int argc, char *argv[]) {
   Init();
 
   if (string(argv[1]) == "-s") {
-    cout << "Create scene" << endl;
+    scene = true;
+    // Parse the obj file, compute the normals, read the textures
+    ParseObj("./data/original.obj", mesh);
+    mesh.compute_normals();
+
+    texture_ids = new GLuint[mesh.num_materials()];
+    glGenTextures(mesh.num_materials(), texture_ids);
+
+    for (int i = 0; i < mesh.num_materials(); ++i) {
+      Material& material = mesh.material(i);
+      material.LoadTexture(texture_ids[i]);
+    }
   } else {
     string filename(argv[1]);
     cout << filename << endl;
