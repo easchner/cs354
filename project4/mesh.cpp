@@ -12,49 +12,27 @@ Mesh::Mesh() {
 
 // This will be called by the obj parser
 void Mesh::AddVertex(const Vec3f& v) {
-  // TODO
   vert_list.push_back(v);
-  // cout << "AddVertex: (" << v[0] << "," << v[1] << "," << v[2] << ")"
-  //  << endl;
   // updates the bounding box
   _bb(v);
 }
 
 // This will be called by the obj parser
 void Mesh::AddTextureVertex(const Vec3f& v) {
-  // TODO
   tex_vert_list.push_back(v);
-  // cout << "AddTextureVertex: (" << v[0] << "," << v[1] << ")" << endl;
 }
 
-// p is the list of indices of vertices for this polygon.  For example,
-// if p = {0, 1, 2} then the polygon is a triangle with the zeroth, first and
-// second vertices added using AddVertex.
-//
-// pt is the list of texture indices for this polygon, similar to the
-// actual vertices described above.
 void Mesh::AddPolygon(const std::vector<int>& p, const std::vector<int>& pt) {
-  // TODO
+  // Store the polys vertices and texture coordinates
   vector <int> v;
   vector <int> vt;
 
-  // cout << "AddPolygon - #verticies: " << p.size() << endl;
-
   for (int i = 0; i < p.size(); i++) {
     v.push_back(p[i]);
-    // cout << p[i];
-    // if (i < p.size() - 1)
-      // cout << ", ";
   }
-  // cout << ") -> (";
   for (int i = 0; i < pt.size(); i++) {
     vt.push_back(pt[i]);
-    // cout << pt[i];
-    // if (i < pt.size() - 1)
-      // cout << ", ";
   }
-
-  // cout << ")" << endl;
 
   poly poly = {v, vt};
   poly_list.push_back(poly);
@@ -72,9 +50,10 @@ void Mesh::compute_normals() {
   vert_norm_list.resize(vert_list.size());
   Vec3f edge1, edge2, normal;
 
-  // iterate through the combination of vertices to get every face
+  // Iterate through each face
   for (int i = 0; i < poly_list.size(); i++) {
     // Compute the normal by taking cross product of V1 - V0 and V2 - V1
+    // Actual vertices used doesn't matter as long as direction is right
     edge1 = vert_list[poly_list[i].v[1]] - vert_list[poly_list[i].v[0]];
     edge2 = vert_list[poly_list[i].v[2]] - vert_list[poly_list[i].v[1]];
     normal = edge1 ^ edge2;
@@ -93,21 +72,14 @@ void Mesh::compute_normals() {
 }
 
 // Draw our mesh to the world view
-void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
-  // glDepthFunc(GL_LEQUAL);
-  glRotatef(rotation[0], 1, 0 , 0);
-  glRotatef(rotation[1], 0, 1 , 0);
-  glRotatef(rotation[2], 0, 0 , 1);
-  glTranslatef(translation[0] ,
-               -bb().dim(1)/2 + translation[1], translation[2]);
-
-  // cout << "Drawing mesh" << endl;
+void Mesh::draw_mesh(GLuint* texture_ids, bool normals) {
   int currentMaterial = -1;
   glCullFace(GL_BACK);
   glEnable(GL_CULL_FACE);
-  glColor4f(1, 1, 1, 1);
 
+  // Iterate through each face
   for (int i = 0; i < poly_list.size(); i++) {
+    // Change material properties if different from last face
     if (_polygon2material[i] != currentMaterial) {
       Material cur_mat = _materials[_polygon2material[i]];
       Vec3f vec = cur_mat.ambient();
@@ -125,6 +97,7 @@ void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
       currentMaterial = _polygon2material[i];
     }
 
+    // Draw the face
     glBegin(GL_POLYGON);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -132,8 +105,8 @@ void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
       glNormal3f(vert_norm_list[poly_list[i].v[j]][0],
                  vert_norm_list[poly_list[i].v[j]][1],
                  vert_norm_list[poly_list[i].v[j]][2]);
-      glTexCoord2f(tex_vert_list[poly_list[i].vt[j]][0],
-                   tex_vert_list[poly_list[i].vt[j]][1]);
+      // glTexCoord2f(tex_vert_list[poly_list[i].vt[j]][0],
+      //              tex_vert_list[poly_list[i].vt[j]][1]);
       glVertex3f(vert_list[poly_list[i].v[j]][0],
                  vert_list[poly_list[i].v[j]][1],
                  vert_list[poly_list[i].v[j]][2]);
@@ -142,21 +115,18 @@ void Mesh::draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation) {
   }
 
   // This is to show normals
-  /* glDisable(GL_LIGHTING);
-  glLineWidth(2);
-  glBegin(GL_LINES);
-  glColor3f(1.0, 0.0, 0.0);
-  for (int i = 0; i < vert_list.size(); i++) {
-    glVertex3f(vert_list[i][0], vert_list[i][1], vert_list[i][2]);
-    glVertex3f(vert_list[i][0] + vert_norm_list[i][0],
-               vert_list[i][1] + vert_norm_list[i][1],
-               vert_list[i][2] + vert_norm_list[i][2]);
+  if (normals) {
+    glDisable(GL_LIGHTING);
+    glLineWidth(2);
+    glBegin(GL_LINES);
+    glColor3f(1.0, 0.0, 0.0);
+    for (int i = 0; i < vert_list.size(); i++) {
+      glVertex3f(vert_list[i][0], vert_list[i][1], vert_list[i][2]);
+      glVertex3f(vert_list[i][0] + vert_norm_list[i][0],
+                 vert_list[i][1] + vert_norm_list[i][1],
+                 vert_list[i][2] + vert_norm_list[i][2]);
+    }
+    glEnd();
+    glEnable(GL_LIGHTING);
   }
-  glEnable(GL_LIGHTING); */
-
-  glRotatef(-rotation[0], 1, 0 , 0);
-  glRotatef(-rotation[1], 0, 1 , 0);
-  glRotatef(-rotation[2], 0, 0 , 1);
-  glTranslatef(-translation[0] ,
-               bb().dim(1)/2 - translation[1], translation[2]);
 }

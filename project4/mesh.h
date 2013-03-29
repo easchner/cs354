@@ -9,6 +9,7 @@
 #include "./material.h"
 #include "./common.h"
 
+// Indices of the poly's vertices and texture coordinates
 struct poly {
   vector <int> v;
   vector <int> vt;
@@ -60,9 +61,6 @@ class Mesh {
     _materials[material_idx].set_texture(texture);
   }
 
-  // TODO - you don't need to modify this function, but it will be useful
-  // in your Display() function.
-  //
   // Given a polygon index, returns the index of the material
   // that should be used for that polygon.
   int polygon2material(int polygon_idx) const {
@@ -79,10 +77,9 @@ class Mesh {
 
   void compute_normals();
 
-  void draw_mesh(GLuint* texture_ids, Vec3f translation, Vec3f rotation);
+  void draw_mesh(GLuint* texture_ids, bool normals);
 
  private:
-  // TODO add necessary data structures here
   std::vector <Vec3f> vert_list;
   std::vector <Vec3f> vert_norm_list;
   std::vector <Vec3f> tex_vert_list;

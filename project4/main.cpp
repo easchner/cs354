@@ -24,26 +24,37 @@ int window_width = 800, window_height = 600;
 float window_aspect = window_width / static_cast<float>(window_height);
 bool scene_lighting;
 
-/* Our variables */
+// Our variables
 int old_y;
 float x_norm, y_norm;
 bool rotating;
 bool zooming = false;
+bool normals = false;
+bool disco = false;
+bool axis = false;
 float zoomFactor = 1.0f;
+Vec3f eye = {0, 0, 6};
+BoundingBox bbox = {{-1, -1, -1}, {1, 1, 1}};
+Vec3f center = (bbox.max+bbox.min)/2.0f;
+
+// For arcBall implementation
 Vec3f startArc;
 Vec3f currentArc;
 Vec3f arcNormal;
 float arcTheta;
 GLfloat arcMatrix[16];
 GLfloat savedArcMatrix[16];
-int radius = 1;
-// (2,2,5) are the values that were originally in the gluLookAt()
-Vec3f eye = {2, 2, 5};
-BoundingBox bbox = {{-1, -1, -1}, {1, 1, 1}};
-bool start = true;
-Vec3f center = (bbox.max+bbox.min)/2.0f;
-Vec3f translation = {0.0, 0.0, 0.0};
-Vec3f rotation = {0.0, 0.0, 0.0};
+
+// For object / light translations
+GLfloat objectTranslate[16];
+GLfloat objectRotate[16];
+GLfloat yOffset[16];
+GLfloat translateStep;
+
+// For lighting
+GLfloat lightPos[4];
+GLfloat lightColor[4];
+GLfloat lightAtten;
 
 void Display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -52,23 +63,9 @@ void Display() {
   glLoadIdentity();
   gluPerspective(40.0, window_aspect, 1, 1500);
 
-  // glEnable(GL_BLEND);
-  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  glEnable(GL_LINE_SMOOTH);
-  glEnable(GL_POLYGON_SMOOTH);
-
-  // TODO call gluLookAt such that mesh fits nicely in viewport.
-  // mesh.bb() may be useful.
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  if (start) {
-    float inis_zoom = max(mesh.bb().xdim()/4,
-                      max(mesh.bb().ydim()/4, mesh.bb().zdim()/4));
-    eye = eye * inis_zoom;
-    start = false;
-  }
   Vec3f zoomedEye = {eye[0] * zoomFactor,
                      eye[1] * zoomFactor,
                      eye[2] * zoomFactor};
@@ -78,26 +75,62 @@ void Display() {
 
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
+  glEnable(GL_RESCALE_NORMAL);
+
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, lightColor);
+  glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+  glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.0);
+  glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, lightAtten);
 
   // Rotate our view to our current arcball state
+  glPushMatrix();
+  MultMatrix(objectTranslate);
+  MultMatrix(objectRotate);
   MultMatrix(arcMatrix);
+  MultMatrix(yOffset);
 
-  // TODO set up lighting, material properties and render mesh.
-  // Be sure to call glEnable(GL_RESCALE_NORMAL) so your normals
-  // remain normalized throughout transformations.
+  if (scene_lighting) {
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+  }
 
   // Draw our mesh
+  mesh.draw_mesh(texture_ids, normals);
 
-  mesh.draw_mesh(texture_ids, translation, rotation);
+  glPopMatrix();
 
-  // You can leave the axis in if you like.
-  glDisable(GL_LIGHTING);
-  glLineWidth(4);
-  DrawAxis();
-  glEnable(GL_LIGHTING);
+  if (disco) {
+    glPushMatrix();
+    GLfloat color[4] = {1.0, 1.0, 1.0, 1.0};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 200.0f);
+    glutSolidSphere(1, 30, 30);
+    glColor4f(0.0, 0.0, 0.0, 0.0);
+    glLineWidth(2);
+    glutWireSphere(1.01, 30, 30);
+//    glTranslatef(10.0, 0.0, 1.0, 0.0);
+    glPopMatrix();
+  }
+
+  MultMatrix(arcMatrix);
+
+  if (axis) {
+    glDisable(GL_LIGHTING);
+    glLineWidth(4);
+    DrawAxis();
+    glEnable(GL_LIGHTING);
+  }
 
   glFlush();
   glutSwapBuffers();
+
+  if (disco) {
+    usleep(90000);
+    discoLight();
+    glutPostRedisplay();
+  }
 }
 
 void PrintMatrix(GLfloat* m) {
@@ -141,7 +174,6 @@ void InvertMatrix(GLfloat* m) {
   }
 }
 
-
 void Init() {
   glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_TRUE);
@@ -159,9 +191,38 @@ void Init() {
 
   gluPerspective(40.0, window_aspect, 1, 1500);
 
+  // Set up our matrices
   glLoadIdentity();
   glGetFloatv(GL_MODELVIEW_MATRIX, arcMatrix);
   glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
+  glGetFloatv(GL_MODELVIEW_MATRIX, objectTranslate);
+  glGetFloatv(GL_MODELVIEW_MATRIX, objectRotate);
+  glGetFloatv(GL_MODELVIEW_MATRIX, yOffset);
+
+  // Change light properties
+  lightColor[0] = 0.75;
+  lightColor[1] = 0.75;
+  lightColor[2] = 0.75;
+  lightColor[3] = 1.0;
+}
+
+void postBoundingBox() {
+  // Need bounding box info for light position / translations
+  lightPos[0] = 0.0;
+  lightPos[1] = 0.0;
+  lightPos[2] = ((mesh.bb().xdim() + mesh.bb().ydim() + mesh.bb().zdim()) / 6.0)
+                * 7.5;
+  lightPos[3] = 1.0;
+  lightAtten = 0.1 / (mesh.bb().zdim() / 2.0);
+  translateStep = (mesh.bb().xdim() + mesh.bb().ydim() + mesh.bb().zdim())
+                  / 300.0;
+
+  // Center the object
+  yOffset[13] = -0.5 * mesh.bb().ydim();
+
+  // Set up our zoom if not already
+  eye = eye * max(mesh.bb().xdim()/4, max(mesh.bb().ydim()/4,
+                  mesh.bb().zdim()/4));
 }
 
 void DrawAxis() {
@@ -180,6 +241,20 @@ void DrawAxis() {
   glVertex3fv(c.x);
   glVertex3fv((c+Z).x);
   glEnd();
+}
+
+void discoLight() {
+  cout << "DISCO TIME!!!" << endl;
+  const int lastColor = 0;
+  int color;
+  do {
+    color = rand() % 8;
+  } while (color == lastColor || color == 0);
+  lightColor[0] = color & 1;
+  lightColor[1] = (color & 2) > 1;
+  lightColor[2] = (color & 4) > 2;
+
+  glClearColor(!(color & 1), !((color & 2) > 1), !((color & 4) > 2), 1.0f);
 }
 
 Vec3f computeArcBall(int x, int y) {
@@ -214,8 +289,8 @@ void MouseButton(int button, int state, int x, int y) {
   } else if (button == 0 && state == 1) {
     rotating = false;
     // Save our current arc ball matrix
-    // glLoadMatrixf(arcMatrix);
-    // glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
+    glLoadMatrixf(arcMatrix);
+    glGetFloatv(GL_MODELVIEW_MATRIX, savedArcMatrix);
     for (int i = 0; i < 16; i++) {
       savedArcMatrix[i] = arcMatrix[i];
     }
@@ -252,11 +327,9 @@ void MouseMotion(int x, int y) {
     // HANDLES ZOOM
     if (zooming && old_y < y) {
       zoomFactor *= 0.98;
-      // cout << "zoom: " << zoomFactor << endl;
     }
     if (zooming && old_y > y) {
       zoomFactor *= 1.02;
-      // cout << "zoom: " << zoomFactor << endl;
     }
     old_y = y;
     glutPostRedisplay();
@@ -269,45 +342,68 @@ void Keyboard(unsigned char key, int x, int y) {
     case 27:  // esc
       exit(0);
       break;
+    case 'y':
+      objectTranslate[12] += translateStep;
+      break;
+    case 'u':
+      objectTranslate[12] -= translateStep;
+      break;
+    case 'h':
+      objectTranslate[13] += translateStep;
+      break;
     case 'j':
-      cout << "translate left" << endl;
-      translation[0]++;
+      objectTranslate[13] -= translateStep;
       break;
-    case 'k':
-      cout << "translate right" << endl;
-      translation[0]--;
-      break;
-    case 'i':
-      cout << "translate up" << endl;
-      translation[1]++;
+    case 'n':
+      objectTranslate[14] += translateStep;
       break;
     case 'm':
-      cout << "translate down" << endl;
-      translation[1]--;
+      objectTranslate[14] -= translateStep;
       break;
-    case '5':
-      cout << "rotate around " << endl;
-      rotation[0] += 5;
+    case 'r':
+      glLoadIdentity();
+      glRotatef(2, 1.0, 0.0, 0.0);
+      MultMatrix(objectRotate);
+      glGetFloatv(GL_MODELVIEW_MATRIX, objectRotate);
       break;
-    case '6':
-      cout << "rotate around " << endl;
-      rotation[0] += 5;
+    case 't':
+      glLoadIdentity();
+      glRotatef(-2, 1.0, 0.0, 0.0);
+      MultMatrix(objectRotate);
+      glGetFloatv(GL_MODELVIEW_MATRIX, objectRotate);
       break;
-    case '7':
-      cout << "rotate around " << endl;
-      rotation[1] += 5;
+    case 'f':
+      glLoadIdentity();
+      glRotatef(2, 0.0, 1.0, 0.0);
+      MultMatrix(objectRotate);
+      glGetFloatv(GL_MODELVIEW_MATRIX, objectRotate);
       break;
-    case '8':
-      cout << "rotate around " << endl;
-      rotation[1] += 5;
+    case 'g':
+      glLoadIdentity();
+      glRotatef(-2, 0.0, 1.0, 0.0);
+      MultMatrix(objectRotate);
+      glGetFloatv(GL_MODELVIEW_MATRIX, objectRotate);
       break;
-    case '9':
-      cout << "rotate around " << endl;
-      rotation[2] += 5;
+    case 'v':
+      glLoadIdentity();
+      glRotatef(2, 0.0, 0.0, 1.0);
+      MultMatrix(objectRotate);
+      glGetFloatv(GL_MODELVIEW_MATRIX, objectRotate);
       break;
-    case '0':
-      cout << "rotate around " << endl;
-      rotation[2] += 5;
+    case 'b':
+      glLoadIdentity();
+      glRotatef(-2, 0.0, 0.0, 1.0);
+      MultMatrix(objectRotate);
+      glGetFloatv(GL_MODELVIEW_MATRIX, objectRotate);
+      break;
+    case 's':
+      normals = !normals;
+      break;
+    case 'a':
+      axis = !axis;
+      break;
+    case 'd':
+      disco = !disco;
       break;
   }
   glutPostRedisplay();
@@ -350,7 +446,6 @@ int main(int argc, char *argv[]) {
     }
 
     // Parse the obj file, compute the normals, read the textures
-
     ParseObj(filename, mesh);
     mesh.compute_normals();
 
@@ -362,6 +457,9 @@ int main(int argc, char *argv[]) {
       material.LoadTexture(texture_ids[i]);
     }
   }
+
+  // Update our vars that needed the bounding box
+  postBoundingBox();
 
   glutMainLoop();
 
