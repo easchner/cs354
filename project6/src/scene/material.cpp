@@ -16,6 +16,7 @@ double max(double a, double b)
     return b;
 }
 
+
 // Apply the phong model to this point on the surface of the object, returning
 // the color of that point.
 Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
@@ -46,7 +47,7 @@ Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
   // like this:
   //
   for (vector<Light*>::const_iterator litr = scene->beginLights(); 
-    litr != scene->endLights(); ++litr) {
+       litr != scene->endLights(); ++litr) {
     Vec3d point = r.getPosition() + r.getDirection() * i.t;
     Light* pLight = *litr;
     Vec3d reflectionAngle = 2 * (i.N * pLight->getDirection(point)) * i.N - pLight->getDirection(point);
@@ -60,6 +61,7 @@ Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
     Vec3d lcolor = pLight->getColor(point);
 
     Vec3d totalColor = prod(diffIntensity + specIntensity, lcolor);
+    totalColor = totalColor * pLight->distanceAttenuation(point);
 
     retVal = retVal + totalColor;	
 
