@@ -8,6 +8,14 @@
 using namespace std;
 extern bool debugMode;
 
+double max(double a, double b)
+{
+  if (a > b)
+    return a;
+  else
+    return b;
+}
+
 // Apply the phong model to this point on the surface of the object, returning
 // the color of that point.
 Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
@@ -23,26 +31,47 @@ Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
   // shading model, including the contributions of all the light sources.
   // You will need to call both distanceAttenuation() and shadowAttenuation()
   // somewhere in your code in order to compute shadows and light falloff.
-  if( debugMode )
-    std::cout << "Debugging Phong code..." << std::endl;
+  if( debugMode ) {
+    cout << "Debugging Phong code..." << endl;
+    Vec3d test = scene->ambient();
+    cout << "scene amb " << test[0] << " - " << test[1] << " - " << test[2] << endl;
+    test = prod(ka(i), scene->ambient());
+    cout << "amb val " << test[0] << " - " << test[1] << " - " << test[2] << endl;
+  }
+
+  Vec3d retVal = ke(i) + prod(ka(i), scene->ambient());
 
   // When you're iterating through the lights,
   // you'll want to use code that looks something
   // like this:
   //
-  // for ( vector<Light*>::const_iterator litr = scene->beginLights(); 
-  // 		litr != scene->endLights(); 
-  // 		++litr )
-  // {
-  // 		Light* pLight = *litr;
-  // 		.
-  // 		.
-  // 		.
-  // }
-	
+  for (vector<Light*>::const_iterator litr = scene->beginLights(); 
+    litr != scene->endLights(); ++litr) {
+    Vec3d point = r.getPosition() + r.getDirection() * i.t;
+    Light* pLight = *litr;
+    Vec3d reflectionAngle = 2 * (i.N * pLight->getDirection(point)) * i.N - pLight->getDirection(point);
 
-  return kd(i);
+    Vec3d diffIntensity = kd(i) * (max(0, i.N * pLight->getDirection(point)));
 
+    Vec3d viewerAngle = scene->getCamera().getEye() - point;
+    viewerAngle.normalize();
+    Vec3d specIntensity = ks(i) * pow(max(0, viewerAngle * reflectionAngle), shininess(i));
+
+    Vec3d lcolor = pLight->getColor(point);
+
+    Vec3d totalColor = prod(diffIntensity + specIntensity, lcolor);
+
+    retVal = retVal + totalColor;	
+
+    if (debugMode) {
+      cout << "retVal " << retVal[0] << " - " << retVal[1] << " - " << retVal[2] << endl;
+      cout << "diff " << diffIntensity[0] << " - " << diffIntensity[1] << " - " << diffIntensity[2] << endl;
+      cout << "spec " << specIntensity[0] << " - " << specIntensity[1] << " - " << specIntensity[2] << endl;
+      cout << "reflection " << reflectionAngle[0] << " - " << reflectionAngle[1] << " - " << reflectionAngle[2] << endl;
+      cout << "lcolor " << lcolor[0] << " - " << lcolor[1] << " - " << lcolor[2] << endl;
+    }
+  }
+  return retVal;
 }
 
 TextureMap::TextureMap( string filename ) {
