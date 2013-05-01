@@ -50,22 +50,42 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
   isect i;
 
   if( scene->intersect( r, i ) ) {
-    // YOUR CODE HERE
-
-    // An intersection occured!  We've got work to do.  For now,
-    // this code gets the material for the surface that was intersected,
-    // and asks that material to provide a color for the ray.  
-
-    // This is a great place to insert code for recursive ray tracing.
-    // Instead of just returning the result of shade(), add some
-    // more steps: add in the contributions from reflected and refracted
-    // rays.
-
+    
+    // if depth > max depth, return background color
+    if(depth > traceUI->getDepth())
+      return Vec3d( 0.0, 0.0, 0.0);
+    
+    bool not_blocked = 1;
+    // check shadow
+    // TODO:
+    
+    // calculate reflection
+    Vec3d ray_dir = -r.getDirection();
+    Vec3d reflection_dir = 2 * (ray_dir * i.N) * i.N - ray_dir;
+    
+    
+    // create reflection_ray
+    ray reflection_ray (r.at(i.t), reflection_dir, ray::REFLECTION);
+    
     const Material& m = i.getMaterial();
 
-    return m.shade(scene, r, i);
-
-	
+    Vec3d iphong = Vec3d(0);
+    Vec3d ireflect = Vec3d(0);
+    Vec3d itransmit = Vec3d(0);
+    
+    if(not_blocked)
+      iphong = m.shade(scene,r,i);
+    
+    //recurse the reflection ray
+    ireflect = traceRay(reflection_ray, thresh, depth+1);
+    
+    // itransmit = traceRay(
+    
+    // m.shade(scene, r, i) + *traceRay(reflection_ray, thresh, depth+1);
+    // return i(phong) + kr * i(reflect) + kt * i(transmit)
+    return iphong + prod(m.kr(i), ireflect) + prod(m.kt(i), itransmit);
+    
+    
   } else {
     // No intersection.  This ray travels to infinity, so we color
     // it according to the background color, which in this (simple) case
@@ -173,17 +193,26 @@ void RayTracer::tracePixel( int i, int j )
   if( ! sceneLoaded() )
     return;
 
-  double x = double(i)/double(buffer_width);
-  double y = double(j)/double(buffer_height);
+  int numRays = 3;
 
+  double randX, randY, x, y;  
+  double pixelSpacing = 1.0 / numRays;
 
-  col = trace( x,y );
+  for (int stepX = 0 * numRays; stepX < numRays; stepX++) {
+    for (int stepY = 0 * numRays; stepY < numRays; stepY++) {
+      x = double(i + pixelSpacing * (double(stepX) + 0.5)) / double(buffer_width);
+      y = double(j + pixelSpacing * (double(stepY) + 0.5)) / double(buffer_height);
+      col = col + trace(x, y);
+    }
+  }
 
   unsigned char *pixel = buffer + ( i + j * buffer_width ) * 3;
 
-  pixel[0] = (int)( 255.0 * col[0]);
-  pixel[1] = (int)( 255.0 * col[1]);
-  pixel[2] = (int)( 255.0 * col[2]);
+  numRays = numRays * numRays;
+
+  pixel[0] = (int)(255.0 * col[0] / numRays);
+  pixel[1] = (int)(255.0 * col[1] / numRays);
+  pixel[2] = (int)(255.0 * col[2] / numRays);
 }
 
 

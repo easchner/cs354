@@ -71,6 +71,7 @@ Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
       cout << "spec " << specIntensity[0] << " - " << specIntensity[1] << " - " << specIntensity[2] << endl;
       cout << "reflection " << reflectionAngle[0] << " - " << reflectionAngle[1] << " - " << reflectionAngle[2] << endl;
       cout << "lcolor " << lcolor[0] << " - " << lcolor[1] << " - " << lcolor[2] << endl;
+      cout << "distAtten " << pLight->distanceAttenuation(point) << endl;
     }
   }
   return retVal;
@@ -122,11 +123,8 @@ Vec3d TextureMap::getMappedValue( const Vec2d& coord ) const
   // [0, 1] x [0, 1] in 2-space to bitmap coordinates,
   // and use these to perform bilinear interpolation
   // of the values.
-
-
-
+  
   return Vec3d(1.0, 1.0, 1.0);
-
 }
 
 
