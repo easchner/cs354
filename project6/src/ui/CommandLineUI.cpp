@@ -43,6 +43,9 @@ CommandLineUI::CommandLineUI( int argc, char** argv )
 
 			case 'w':
 				m_nSize = atoi( optarg );
+
+			case 's':
+				m_nRays = atoi( optarg );
 				break;
 			default:
 			// Oops; unknown argument
@@ -112,4 +115,5 @@ void CommandLineUI::usage()
 	std::cerr << "usage: " << progName << " [options] [input.ray output.bmp]" << std::endl;
 	std::cerr << "  -r <#>      set recursion level (default " << m_nDepth << ")" << std::endl; 
 	std::cerr << "  -w <#>      set output image width (default " << m_nSize << ")" << std::endl;
+	std::cerr << "  -s <#>      set number of samples per pixel (default " << m_nRays << ")" << std::endl;
 }

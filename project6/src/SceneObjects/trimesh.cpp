@@ -76,15 +76,43 @@ bool Trimesh::intersectLocal(const ray&r, isect&i) const
 // Intersect ray r with the triangle abc.  If it hits returns true,
 // and puts the t parameter, barycentric coordinates, normal, object id,
 // and object material in the isect object
+// Using Moller / Trumbore algorithm
 bool TrimeshFace::intersectLocal( const ray& r, isect& i ) const
 {
   const Vec3d& a = parent->vertices[ids[0]];
   const Vec3d& b = parent->vertices[ids[1]];
   const Vec3d& c = parent->vertices[ids[2]];
 
-  // YOUR CODE HERE
+  Vec3d B_A = b - a;
+  Vec3d C_A = c - a;
+  Vec3d PxT = r.getDirection() ^ C_A;
+  Vec3d t = r.getPosition() - a;
+  Vec3d q = t ^ B_A;
 
-  return false;
+  double determinant = B_A * PxT;
+  double invertedDet = 1 / determinant;
+
+  double u = (t * PxT) * invertedDet;
+  double v = (r.getDirection() * q) * invertedDet;
+
+  if (determinant == 0) {
+    return false;
+  } else if (u < 0 || v < 0) {
+    return false;
+  } else if (u + v > 1) {
+    return false;
+  }
+
+  Vec3d calcNormal = parent->normals[ids[0]] * (1-u-v) + parent->normals[ids[1]]
+     * u + parent->normals[ids[2]] * v;
+
+  i.setN(calcNormal);
+  i.setMaterial(*(parent->material));
+  i.setUVCoordinates(Vec2d(u, v));
+  i.setT((C_A * q) * invertedDet);
+  i.setObject(this);
+
+  return true;
 }
 
 void Trimesh::generateNormals()

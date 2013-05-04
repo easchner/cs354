@@ -43,10 +43,10 @@ Vec3d DirectionalLight::getDirection( const Vec3d& P ) const
 
 double PointLight::distanceAttenuation( const Vec3d& P ) const
 {
-    // These three values are the a, b, and c in the distance
+  // These three values are the a, b, and c in the distance
   // attenuation function (from the slide labelled 
   // "Intensity drop-off with distance"):
-  //    f(d) = min( 1, 1/( a + b d + c d^2 ) )
+  // f(d) = min( 1, 1/( a + b d + c d^2 ) )
   Vec3d ans = P - position;
   double d = sqrt(pow(ans[0],2) + pow(ans[1],2) + pow(ans[2],2));
   
@@ -69,9 +69,13 @@ Vec3d PointLight::getDirection( const Vec3d& P ) const
 
 Vec3d PointLight::shadowAttenuation(const Vec3d& P) const
 {
-  // YOUR CODE HERE:
-  // You should implement shadow-handling code here.
+  // Check to see if blocked
+  isect i;
+  ray r (P, position - P, ray::SHADOW);
 
-  return Vec3d(1,1,1);
-
+  if (scene->intersect(r, i) && i.t < 1 && i.t > 0) {
+    return Vec3d(0,0,0);
+  } else {
+    return Vec3d(1,1,1);
+  }
 }

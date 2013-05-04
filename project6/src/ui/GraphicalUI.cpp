@@ -111,6 +111,11 @@ void GraphicalUI::cb_depthSlides(Fl_Widget* o, void* v)
 	((GraphicalUI*)(o->user_data()))->m_nDepth=int( ((Fl_Slider *)o)->value() ) ;
 }
 
+void GraphicalUI::cb_raySlides(Fl_Widget* o, void* v)
+{
+	((GraphicalUI*)(o->user_data()))->m_nRays=int( ((Fl_Slider *)o)->value() ) ;
+}
+
 void GraphicalUI::cb_debuggingDisplayCheckButton(Fl_Widget* o, void* v)
 {
 	GraphicalUI* pUI=(GraphicalUI*)(o->user_data());
@@ -277,14 +282,27 @@ GraphicalUI::GraphicalUI() {
         m_sizeSlider->labelfont(FL_COURIER);
         m_sizeSlider->labelsize(12);
 		m_sizeSlider->minimum(64);
-		m_sizeSlider->maximum(512);
+		m_sizeSlider->maximum(1080);
 		m_sizeSlider->step(1);
 		m_sizeSlider->value(m_nSize);
 		m_sizeSlider->align(FL_ALIGN_RIGHT);
 		m_sizeSlider->callback(cb_sizeSlides);
 
+    // install anti-aliasing slider
+		m_raySlider = new Fl_Value_Slider(10, 80, 180, 20, "Rays per pixel (sqrt)");
+		m_raySlider->user_data((void*)(this));	// record self to be used by static callback functions
+		m_raySlider->type(FL_HOR_NICE_SLIDER);
+        m_raySlider->labelfont(FL_COURIER);
+        m_raySlider->labelsize(12);
+		m_raySlider->minimum(1);
+		m_raySlider->maximum(5);
+		m_raySlider->step(1);
+		m_raySlider->value(m_nRays);
+		m_raySlider->align(FL_ALIGN_RIGHT);
+		m_raySlider->callback(cb_raySlides);
+
 		// set up debugging display checkbox
-        m_debuggingDisplayCheckButton = new Fl_Check_Button(0, 280, 180, 20, "Debugging display");
+    m_debuggingDisplayCheckButton = new Fl_Check_Button(0, 280, 180, 20, "Debugging display");
 		m_debuggingDisplayCheckButton->user_data((void*)(this));
 		m_debuggingDisplayCheckButton->callback(cb_debuggingDisplayCheckButton);
 		m_debuggingDisplayCheckButton->value(m_displayDebuggingInfo);

@@ -23,7 +23,7 @@ class RayTracer;
 class TraceUI {
 public:
 	TraceUI()
-		: m_nDepth(0), m_nSize(150), 
+		: m_nDepth(0), m_nSize(150), m_nRays(1), 
 		m_displayDebuggingInfo( false ),
 		raytracer( 0 )
 	{ }
@@ -40,12 +40,14 @@ public:
 	// accessors:
 	int		getSize() const { return m_nSize; }
 	int		getDepth() const { return m_nDepth; }
+  int   getRays() const { return m_nRays; }
 
 protected:
 	RayTracer*	raytracer;
 
 	int			m_nSize;				// Size of the traced image
 	int			m_nDepth;				// Max depth of recursion
+  int     m_nRays;        // Sqrt of # of rays per pixel
 
 	// Determines whether or not to show debugging information
 	// for individual rays.  Disabled by default for efficiency

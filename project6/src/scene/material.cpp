@@ -32,14 +32,14 @@ Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
   // shading model, including the contributions of all the light sources.
   // You will need to call both distanceAttenuation() and shadowAttenuation()
   // somewhere in your code in order to compute shadows and light falloff.
-  if( debugMode ) {
+/*  if( debugMode ) {
     cout << "Debugging Phong code..." << endl;
     Vec3d test = scene->ambient();
     cout << "scene amb " << test[0] << " - " << test[1] << " - " << test[2] << endl;
     test = prod(ka(i), scene->ambient());
     cout << "amb val " << test[0] << " - " << test[1] << " - " << test[2] << endl;
   }
-
+*/
   Vec3d retVal = ke(i) + prod(ka(i), scene->ambient());
 
   // When you're iterating through the lights,
@@ -62,17 +62,18 @@ Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
 
     Vec3d totalColor = prod(diffIntensity + specIntensity, lcolor);
     totalColor = totalColor * pLight->distanceAttenuation(point);
+    totalColor = prod(totalColor, pLight->shadowAttenuation(point));
 
     retVal = retVal + totalColor;	
 
-    if (debugMode) {
+/*    if (debugMode) {
       cout << "retVal " << retVal[0] << " - " << retVal[1] << " - " << retVal[2] << endl;
       cout << "diff " << diffIntensity[0] << " - " << diffIntensity[1] << " - " << diffIntensity[2] << endl;
       cout << "spec " << specIntensity[0] << " - " << specIntensity[1] << " - " << specIntensity[2] << endl;
       cout << "reflection " << reflectionAngle[0] << " - " << reflectionAngle[1] << " - " << reflectionAngle[2] << endl;
       cout << "lcolor " << lcolor[0] << " - " << lcolor[1] << " - " << lcolor[2] << endl;
       cout << "distAtten " << pLight->distanceAttenuation(point) << endl;
-    }
+    }*/
   }
   return retVal;
 }

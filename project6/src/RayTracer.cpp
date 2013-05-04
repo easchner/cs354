@@ -59,27 +59,60 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
     // check shadow
     // TODO:
     
-    // calculate reflection
-    Vec3d ray_dir = -r.getDirection();
-    Vec3d reflection_dir = 2 * (ray_dir * i.N) * i.N - ray_dir;
-    
-    
-    // create reflection_ray
-    ray reflection_ray (r.at(i.t), reflection_dir, ray::REFLECTION);
-    
     const Material& m = i.getMaterial();
 
     Vec3d iphong = Vec3d(0);
     Vec3d ireflect = Vec3d(0);
     Vec3d itransmit = Vec3d(0);
+    Vec3d transmission_dir;
+    ray transmission_ray (r.at(i.t), i.N, ray::REFRACTION);
     
     if(not_blocked)
       iphong = m.shade(scene,r,i);
+
+    // calculate reflection
+    Vec3d ray_dir = -r.getDirection();
+    Vec3d reflection_dir = 2 * (ray_dir * i.N) * i.N - ray_dir;
+    
+    // create reflection_ray
+    ray reflection_ray (r.at(i.t), reflection_dir, ray::REFLECTION);
     
     //recurse the reflection ray
     ireflect = traceRay(reflection_ray, thresh, depth+1);
-    
-    // itransmit = traceRay(
+
+    // Check for transmissive rays
+    double val = m.kt(i)[0] + m.kt(i)[1] + m.kt(i)[2];
+    if (val > 0) {
+      // Check are we coming in or going out
+      double test = ray_dir * i.N;
+
+      double tranIndex, thetaI, thetaT;
+      
+      if (test > 0) {
+        // calculate transmission direction
+        tranIndex = 1 / m.index(i);
+        thetaI = i.N * ray_dir;
+        thetaT = 1 - pow(tranIndex, 2) * (1 - pow(thetaI, 2));
+        thetaT = sqrt(thetaT);
+        transmission_dir = i.N * (tranIndex * thetaI - thetaT) - ray_dir * tranIndex;
+        // cout << "Index: " << tranIndex << ", I: " << thetaI << ", T: " << thetaT << endl;
+      } else {
+        // calculate transmission direction
+        tranIndex = m.index(i);
+        thetaI = i.N * ray_dir;
+        thetaT = (1 - pow(tranIndex, 2) * (1 - pow(thetaI, 2)));
+        thetaT = sqrt(thetaT);
+        transmission_dir = i.N * (tranIndex * thetaI + thetaT) - ray_dir * tranIndex;
+      }
+     
+      // create the transmission ray
+      if (thetaT > 0)	{
+        ray temp_ray (r.at(i.t), transmission_dir, ray::REFRACTION);
+        transmission_ray = temp_ray;
+      }
+      
+      itransmit = traceRay(transmission_ray, thresh, depth + 1);
+    }
     
     // m.shade(scene, r, i) + *traceRay(reflection_ray, thresh, depth+1);
     // return i(phong) + kr * i(reflect) + kt * i(transmit)
@@ -193,9 +226,9 @@ void RayTracer::tracePixel( int i, int j )
   if( ! sceneLoaded() )
     return;
 
-  int numRays = 3;
+  int numRays = traceUI->getRays();
 
-  double randX, randY, x, y;  
+  double x, y;  
   double pixelSpacing = 1.0 / numRays;
 
   for (int stepX = 0 * numRays; stepX < numRays; stepX++) {

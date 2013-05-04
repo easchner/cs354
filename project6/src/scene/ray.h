@@ -119,7 +119,7 @@ public:
     }
 
 public:
-    const SceneObject 	*obj;
+    const SceneObject *obj;
     double t;
     Vec3d N;
     Vec2d uvCoordinates;
