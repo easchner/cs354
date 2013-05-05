@@ -104,8 +104,7 @@ bool TrimeshFace::intersectLocal( const ray& r, isect& i ) const
     return false;
   }
   double tval = (C_A * q) * invertedDet;
-  if (tval < 0){
-    cout << "Below Epsilon, r.orig = (" << r.getPosition()[0] << ", " << r.getPosition()[1] << ", " << r.getPosition()[2] << ")  -  Direction = (" << r.getDirection()[0] << ", " << r.getDirection()[1] << ", " << r.getDirection()[2] << ")  -  t = " << tval << endl;
+  if (tval < RAY_EPSILON){
     return false;
   }
 
@@ -114,7 +113,8 @@ bool TrimeshFace::intersectLocal( const ray& r, isect& i ) const
 
   i.setN(calcNormal);
   i.N.normalize();
-  i.setMaterial(*(parent->material));
+//  i.setMaterial(*(parent->material));
+  i.setMaterial(*(this->material));
   i.setUVCoordinates(Vec2d(u, v));
   i.setT(tval);
   i.setObject(this);
@@ -126,6 +126,8 @@ void Trimesh::generateNormals()
     // Once you've loaded all the verts and faces, we can generate per
     // vertex normals by averaging the normals of the neighboring faces.
 {
+  cout << "generateNormals()" << vertices.size() << ", " << normals.size() << endl;
+
   int cnt = vertices.size();
   normals.resize( cnt );
   int *numFaces = new int[ cnt ]; // the number of faces assoc. with each vertex

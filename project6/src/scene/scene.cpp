@@ -29,7 +29,7 @@ bool Geometry::intersect(const ray&r, isect&i) const {
 bool Geometry::hasBoundingBoxCapability() const {
 	// by default, primitives do not have to specify a bounding box.
 	// If this method returns true for a primitive, then either the ComputeBoundingBox() or
-    // the ComputeLocalBoundingBox() method must be implemented.
+     // the ComputeLocalBoundingBox() method must be implemented.
 
 	// If no bounding box capability is supported for an object, that object will
 	// be checked against every single ray drawn.  This should be avoided whenever possible,
@@ -64,7 +64,7 @@ bool Scene::intersect( const ray& r, isect& i ) const {
 		}
 	}
 	if( !have_one ) i.setT(1000.0);
-	// if debugging,
+
 	intersectCache.push_back( std::make_pair(r,i) );
 	return have_one;
 }

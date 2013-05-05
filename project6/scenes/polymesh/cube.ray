@@ -53,6 +53,7 @@ rotate(1,1,1,1,
 				material = { 
 					ambient = (0.0,0.0,0.0); 
 					diffuse = (0.1,0.1,1.0);
-					specular = (0.0,0.0,0.0) 
+					specular = (0.0,0.0,0.0);
+          transmissive = ( 0,0,0 )
 				}
 			} )))

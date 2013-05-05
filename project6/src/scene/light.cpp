@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "light.h"
+#include "material.h"
 
 
 
@@ -25,24 +26,11 @@ Vec3d DirectionalLight::shadowAttenuation( const Vec3d& P ) const
 {
   // Check to see if blocked
   isect i;
-  ray r (P, orientation, ray::SHADOW);
-
-//  cout << "Dir shadow ray: " << P[0] << ", " << P[1] << ", " << P[2] << endl;
+  ray r (P, -orientation, ray::SHADOW);
 
   if (scene->intersect(r, i)) {
-    if (i.t < .001) {
-//      cout << "early intersect" << i.t << "  -  ";
-      scene->intersect(r, i);
-    }
-    if (i.t > .001) {
-//      cout << "intersect at " << i.t << endl;
-      return Vec3d(0,0,0);
-    } else {
-//      cout << i.t << endl;
-      return Vec3d(1,1,1);
-    }
+    return ( prod(Vec3d(1,1,1), i.getMaterial().kt(i)) );
   } else {
-//    cout << "no intersect" << endl;
     return Vec3d(1,1,1);
   }
 }
@@ -91,7 +79,7 @@ Vec3d PointLight::shadowAttenuation(const Vec3d& P) const
   ray r (P, position - P, ray::SHADOW);
 
   if (scene->intersect(r, i) && i.t < 1 && i.t > 0) {
-    return Vec3d(0,0,0);
+    return ( prod(Vec3d(1,1,1), i.getMaterial().kt(i)) );
   } else {
     return Vec3d(1,1,1);
   }

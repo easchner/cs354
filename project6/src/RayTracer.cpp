@@ -49,11 +49,12 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
 {
   isect i;
 
+  // if depth > max depth, return background color
+  if(depth > traceUI->getDepth())
+    return Vec3d( 0.0, 0.0, 0.0);
+
+  // cout << "Sending ray, ray tracer" << endl;
   if( scene->intersect( r, i ) ) {
-    
-    // if depth > max depth, return background color
-    if(depth > traceUI->getDepth())
-      return Vec3d( 0.0, 0.0, 0.0);
     
     bool not_blocked = 1;
     // check shadow
