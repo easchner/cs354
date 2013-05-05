@@ -53,13 +53,8 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
   if(depth > traceUI->getDepth())
     return Vec3d( 0.0, 0.0, 0.0);
 
-  // cout << "Sending ray, ray tracer" << endl;
   if( scene->intersect( r, i ) ) {
-    
-    bool not_blocked = 1;
-    // check shadow
-    // TODO:
-    
+        
     const Material& m = i.getMaterial();
 
     Vec3d iphong = Vec3d(0);
@@ -68,8 +63,7 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
     Vec3d transmission_dir;
     ray transmission_ray (r.at(i.t), i.N, ray::REFRACTION);
     
-    if(not_blocked)
-      iphong = m.shade(scene,r,i);
+    iphong = m.shade(scene,r,i);
 
     // calculate reflection
     Vec3d ray_dir = -r.getDirection();
@@ -96,7 +90,6 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
         thetaT = 1 - pow(tranIndex, 2) * (1 - pow(thetaI, 2));
         thetaT = sqrt(thetaT);
         transmission_dir = i.N * (tranIndex * thetaI - thetaT) - ray_dir * tranIndex;
-        // cout << "Index: " << tranIndex << ", I: " << thetaI << ", T: " << thetaT << endl;
       } else {
         // calculate transmission direction
         tranIndex = m.index(i);
@@ -114,17 +107,11 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
       
       itransmit = traceRay(transmission_ray, thresh, depth + 1);
     }
-    
-    // m.shade(scene, r, i) + *traceRay(reflection_ray, thresh, depth+1);
-    // return i(phong) + kr * i(reflect) + kt * i(transmit)
     return iphong + prod(m.kr(i), ireflect) + prod(m.kt(i), itransmit);
-    
-    
   } else {
     // No intersection.  This ray travels to infinity, so we color
     // it according to the background color, which in this (simple) case
     // is just black.
-
     return Vec3d( 0.0, 0.0, 0.0 );
   }
 }
@@ -132,9 +119,8 @@ Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth )
 RayTracer::RayTracer()
     : scene( 0 ), buffer( 0 ), buffer_width( 256 ), buffer_height( 256 ), m_bBufferReady( false )
 {
-
+  
 }
-
 
 RayTracer::~RayTracer()
 {

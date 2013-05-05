@@ -113,7 +113,6 @@ bool TrimeshFace::intersectLocal( const ray& r, isect& i ) const
 
   i.setN(calcNormal);
   i.N.normalize();
-//  i.setMaterial(*(parent->material));
   i.setMaterial(*(this->material));
   i.setUVCoordinates(Vec2d(u, v));
   i.setT(tval);
@@ -126,7 +125,6 @@ void Trimesh::generateNormals()
     // Once you've loaded all the verts and faces, we can generate per
     // vertex normals by averaging the normals of the neighboring faces.
 {
-  cout << "generateNormals()" << vertices.size() << ", " << normals.size() << endl;
 
   int cnt = vertices.size();
   normals.resize( cnt );

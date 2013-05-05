@@ -16,17 +16,19 @@ double max(double a, double b)
     return b;
 }
 
-
 // Apply the phong model to this point on the surface of the object, returning
-// the color of that point.
+// the color of that point. Uses shaddowAttenuation which sends a shadow ray
+// to check if there is an intersection that blocks the light sources.
 Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
 {
   Vec3d retVal = ke(i) + prod(ka(i), scene->ambient());
-
+  
+  // Applies calculations for each light source
   for (vector<Light*>::const_iterator litr = scene->beginLights(); 
        litr != scene->endLights(); ++litr) {
     Vec3d point = r.getPosition() + r.getDirection() * i.t;
     Light* pLight = *litr;
+  
     Vec3d reflectionAngle = 2 * (i.N * pLight->getDirection(point)) * i.N - pLight->getDirection(point);
 
     Vec3d diffIntensity = kd(i) * (max(0, i.N * pLight->getDirection(point)));
