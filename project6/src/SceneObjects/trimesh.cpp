@@ -2,6 +2,7 @@
 #include <float.h>
 #include "trimesh.h"
 
+
 using namespace std;
 
 Trimesh::~Trimesh()
@@ -102,14 +103,20 @@ bool TrimeshFace::intersectLocal( const ray& r, isect& i ) const
   } else if (u + v > 1) {
     return false;
   }
+  double tval = (C_A * q) * invertedDet;
+  if (tval < 0){
+    cout << "Below Epsilon, r.orig = (" << r.getPosition()[0] << ", " << r.getPosition()[1] << ", " << r.getPosition()[2] << ")  -  Direction = (" << r.getDirection()[0] << ", " << r.getDirection()[1] << ", " << r.getDirection()[2] << ")  -  t = " << tval << endl;
+    return false;
+  }
 
   Vec3d calcNormal = parent->normals[ids[0]] * (1-u-v) + parent->normals[ids[1]]
      * u + parent->normals[ids[2]] * v;
 
   i.setN(calcNormal);
+  i.N.normalize();
   i.setMaterial(*(parent->material));
   i.setUVCoordinates(Vec2d(u, v));
-  i.setT((C_A * q) * invertedDet);
+  i.setT(tval);
   i.setObject(this);
 
   return true;

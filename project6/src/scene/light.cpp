@@ -23,11 +23,28 @@ double DirectionalLight::distanceAttenuation( const Vec3d& P ) const
 
 Vec3d DirectionalLight::shadowAttenuation( const Vec3d& P ) const
 {
-  // YOUR CODE HERE:
-  // You should implement shadow-handling code here.
+  // Check to see if blocked
+  isect i;
+  ray r (P, orientation, ray::SHADOW);
 
-  return Vec3d(1,1,1);
+//  cout << "Dir shadow ray: " << P[0] << ", " << P[1] << ", " << P[2] << endl;
 
+  if (scene->intersect(r, i)) {
+    if (i.t < .001) {
+//      cout << "early intersect" << i.t << "  -  ";
+      scene->intersect(r, i);
+    }
+    if (i.t > .001) {
+//      cout << "intersect at " << i.t << endl;
+      return Vec3d(0,0,0);
+    } else {
+//      cout << i.t << endl;
+      return Vec3d(1,1,1);
+    }
+  } else {
+//    cout << "no intersect" << endl;
+    return Vec3d(1,1,1);
+  }
 }
 
 Vec3d DirectionalLight::getColor( const Vec3d& P ) const
